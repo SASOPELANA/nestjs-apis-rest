@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Task } from './tasks.interface';
+import { Task } from './dto/create-taks.dto';
 
 @Injectable()
 export class TasksService {
