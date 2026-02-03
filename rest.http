@@ -8,9 +8,28 @@ GET http://localhost:3000 HTTP/1.1
 GET http://localhost:3000/hello HTTP/1.1
 
 
-### GET
+### GET | USER
 
 GET http://localhost:3000/api/users HTTP/1.1
+
+
+### GET | ID | USER
+
+GET http://localhost:3000/api/users/3 HTTP/1.1
+
+
+### POST | CREATE | USER
+
+POST http://localhost:3000/api/users HTTP/1.1
+Content-Type: application/json
+
+{
+  "age": 39,
+  "email": "test@test.com",
+  "name": "Juan Luna",
+  "password": "123456",
+  "test": 123
+}
 
 
 ### GET
@@ -28,14 +47,14 @@ GET http://localhost:3000/api/tasks/2 HTTP/1.1
 GET http://localhost:3000/api/tasks?limit=5 HTTP/1.1
 
 
-### POST
+### POST | CREATE | TASK
 
 POST http://localhost:3000/api/tasks HTTP/1.1
 Content-Type: application/json
 
 {
-  "age": 30,
-  "name": "Ju",
+  "age": 25,
+  "name": "Juan Perez",
   "title": "Programador"
 }
 

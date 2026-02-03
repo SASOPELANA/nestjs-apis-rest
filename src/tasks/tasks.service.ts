@@ -20,7 +20,7 @@ export class TasksService {
   }
 
   createTasks(task: Task): Task {
-    console.log(task);
+    //console.log(task);
     this.tasks.push({
       ...task,
       id: this.tasks.length + 1,

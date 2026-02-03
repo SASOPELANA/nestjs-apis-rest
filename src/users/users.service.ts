@@ -1,21 +1,30 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
 export class UsersService {
-  private user = [
-    {
-      id: 1,
-      name: 'Jhons Aimar',
-      phone: '2154789',
-    },
-    {
-      id: 2,
-      name: 'seregio safklsafkj',
-      phone: '215254789',
-    },
-  ];
+  private users: CreateUserDto[] = [];
 
-  getUsers() {
-    return this.user;
+  getUsers(): CreateUserDto[] {
+    return this.users;
+  }
+
+  getByUser(id: number): CreateUserDto | undefined {
+    const resUser = this.users.find((user) => user.id === id);
+
+    if (!resUser) {
+      throw new NotFoundException(`Task with id ${id} not found`);
+    }
+
+    return resUser;
+  }
+
+  createUser(user: CreateUserDto): CreateUserDto {
+    this.users.push({
+      ...user,
+      id: this.users.length + 1,
+    });
+
+    return user;
   }
 }
