@@ -77,3 +77,13 @@ DELETE http://localhost:3000/api/tasks HTTP/1.1
 ### GET | AUTH
 
 GET http://localhost:3000/auth HTTP/1.1
+
+
+### GET | AUTH | NOT FOUND
+
+GET http://localhost:3000/auth/notfount HTTP/1.1 HTTP/1.1
+
+
+### GET | AUTH | ERROR PAGE
+
+GET http://localhost:3000/auth/error HTTP/1.1
