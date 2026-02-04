@@ -1,4 +1,9 @@
-import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import {
+  Module,
+  MiddlewareConsumer,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
 import { TasksModule } from './tasks/tasks.module';
 import { ProjectsModule } from './projects/projects.module';
 import { AuthModule } from './auth/auth.module';
@@ -8,6 +13,7 @@ import { HelloService } from './hello/hello.service';
 import { HelloModule } from './hello/hello.module';
 
 import { LoggerMiddleware } from './utils/logger/logger.middleware';
+import { MiddLoggerMiddleware } from './users/midd-logger/midd-logger.middleware';
 
 @Module({
   imports: [TasksModule, ProjectsModule, AuthModule, UsersModule, HelloModule],
@@ -16,6 +22,13 @@ import { LoggerMiddleware } from './utils/logger/logger.middleware';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware).forRoutes('*');
+    consumer
+      .apply(LoggerMiddleware)
+      .forRoutes('*')
+      .apply(MiddLoggerMiddleware)
+      .forRoutes({
+        path: '/api/users',
+        method: RequestMethod.POST,
+      });
   }
 }
