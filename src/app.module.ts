@@ -14,9 +14,17 @@ import { HelloModule } from './hello/hello.module';
 
 import { LoggerMiddleware } from './utils/logger/logger.middleware';
 import { MiddLoggerMiddleware } from './users/midd-logger/midd-logger.middleware';
+import { ProductsModule } from './products/products.module';
 
 @Module({
-  imports: [TasksModule, ProjectsModule, AuthModule, UsersModule, HelloModule],
+  imports: [
+    TasksModule,
+    ProjectsModule,
+    AuthModule,
+    UsersModule,
+    HelloModule,
+    ProductsModule,
+  ],
   controllers: [HelloController],
   providers: [HelloService],
 })
