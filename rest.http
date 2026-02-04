@@ -7,17 +7,22 @@ GET http://localhost:3000 HTTP/1.1
 
 GET http://localhost:3000/hello HTTP/1.1
 
+
 ### GET | TICKET
 
 GET http://localhost:3000/hello/ticket/22 HTTP/1.1
+
 
 ### GET | HELLO | STATUS
 
 GET http://localhost:3000/hello/active/false HTTP/1.1
 
+
 ### GET | HELLO | QUERY
 
 GET http://localhost:3000/hello/greet?name=Juan&age=33 HTTP/1.1
+Authorization: true
+
 
 ### GET | USER
 
