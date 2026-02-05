@@ -7,17 +7,17 @@ export class UsersController {
   constructor(private userService: UsersService) {}
 
   @Get('/users')
-  getUsers(): any[] {
+  async getUsers(): Promise<any[]> {
     return this.userService.getUsers();
   }
 
   @Get('/users/:id')
-  getByUser(@Param('id') id: string) {
-    return this.userService.getByUser(Number(id));
+  async getByUser(@Param('id') id: string) {
+    return this.userService.getByUser(id);
   }
 
   @Post('/users')
-  createUser(@Body() user: CreateUserDto) {
+  async createUser(@Body() user: CreateUserDto) {
     return this.userService.createUser(user);
   }
 }

@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: sope
+      POSTGRES_PASSWORD: sope123456
+      POSTGRES_DB: nest_db
+    ports:
+      - "5432:5432"

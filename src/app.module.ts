@@ -15,6 +15,7 @@ import { HelloModule } from './hello/hello.module';
 import { LoggerMiddleware } from './utils/logger/logger.middleware';
 import { MiddLoggerMiddleware } from './users/midd-logger/midd-logger.middleware';
 import { ProductsModule } from './products/products.module';
+import { PrismaService } from './prisma.service';
 
 @Module({
   imports: [
@@ -26,7 +27,7 @@ import { ProductsModule } from './products/products.module';
     ProductsModule,
   ],
   controllers: [HelloController],
-  providers: [HelloService],
+  providers: [HelloService, PrismaService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
