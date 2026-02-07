@@ -21,7 +21,14 @@ async function bootstrap() {
     .addTag('cats')
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
+  // the endpoint swagger --> http://localhost:3000/api
   SwaggerModule.setup('api', app, documentFactory);
+
+  // cors --> habilitar las peticiones de otros dominios o el configurado en el app.enableCors()
+  // validar el dominio --> solo el dominio validado puede hacer peticiones
+  app.enableCors({
+    origin: 'https://portafolio-web-tl1w.vercel.app',
+  });
 
   await app.listen(process.env.PORT ?? 3000);
 }
