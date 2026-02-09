@@ -1,98 +1,201 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# API REST con NestJS, TypeScript, Docker con PostgreSQL
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## Descripción
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+En este proyecto decidí usar NestJS para tener una API REST con TypeScript, motivo de estar mejor organizado y tener una mejor estructura del proyecto, usando arquitectura monolítica modular, con la carpeta `src` con los módulos, controllers, services, dtos, types, etc. Para la gestión de la base de datos use **Prisma ORM**, **Docker** para tener un contenedor con **PostgreSQL**, y para tener una documentación legible y fácil de entender la API use **Swagger** para probar los endpoints.
 
-## Description
+Configuración de variables de entorno con el paquete `@nestjs/config` (o `dotenv`) para tener una mejor gestión de las variables de entorno para credenciales e información sensible como password, bases de datos y tokens. Para la validación de los DTOs use los paquetes `class-validator` y `class-transformer` para tener una validación más robusta y fácil de usar.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Prisma es el ORM de nueva generación que permite una interacción tipo-segura (type-safe) con la base de datos, integrándose perfectamente con el ecosistema de NestJS.
 
-## Project setup
+Guía a través de la documentación Oficial de NestJS para una mejor experiencia de desarrollo y buenas prácticas.
 
-```bash
-$ pnpm install
+## Manejo de Errores con Excepciones HTTP en NestJS
+
+NestJS provee excepciones listas para usar que lanzan automáticamente el status HTTP correcto y formatean la respuesta en JSON.
+
+**Filosofía recomendada**  
+
+- Lanzar excepciones directamente (`throw`) desde **services** (lógica de negocio) o controllers (validaciones simples).  
+- **No usar try/catch** salvo que necesites loguear, hacer cleanup o transformar el error.  
+- El filtro global de excepciones de NestJS las captura y responde automáticamente.
+
+## Excepciones más usadas y cuándo lanzarlas
+
+| Excepción                        | Status | Cuándo usarla (caso típico)                              | Ejemplo de uso práctico                                      |
+|----------------------------------|--------|----------------------------------------------------------|--------------------------------------------------------------|
+| `BadRequestException`            | 400    | Datos inválidos, validación fallida, parámetro malo      | Email con formato incorrecto, campo requerido faltante      |
+| `UnauthorizedException`          | 401    | No autenticado (sin token, token inválido/expirado)      | Intento de acceso sin JWT válido o credenciales erróneas     |
+| `ForbiddenException`             | 403    | Autenticado pero sin permiso (rol insuficiente)          | Usuario "user" intenta eliminar un recurso de "admin"       |
+| `NotFoundException`              | 404    | Recurso no existe en la base de datos                    | `GET /users/999` → el usuario con ID 999 no existe           |
+| `ConflictException`              | 409    | Conflicto de estado (duplicado, ya existe)               | Registro de usuario con email que ya está en uso             |
+| `GoneException`                  | 410    | Recurso existió pero ya no está disponible               | Token de recuperación de contraseña ya expirado/usado       |
+| `InternalServerErrorException`   | 500    | Error grave del servidor (usar muy poco manualmente)     | Mejor dejar que errores no manejados suban solos             |
+
+## Ejemplos prácticos
+
+### 1. En un Service (recomendado – lógica de negocio)
+
+```ts
+// src/users/users.service.ts
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
+
+@Injectable()
+export class UsersService {
+  constructor(private userRepository: UserRepository) {}
+
+  async findOne(id: number): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`El usuario con ID ${id} no existe`);
+    }
+    return user;
+  }
+
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    if (!createUserDto.email.includes('@')) {
+      throw new BadRequestException('El email debe ser válido');
+    }
+
+    const emailExists = await this.userRepository.existsByEmail(createUserDto.email);
+    if (emailExists) {
+      throw new ConflictException('El email ya está registrado');
+    }
+
+    return this.userRepository.save(createUserDto);
+  }
+
+  async update(id: number, updateDto: UpdateUserDto, currentUser: User) {
+    const user = await this.findOne(id); // ya lanza NotFound si no existe
+
+    if (user.id !== currentUser.id && !currentUser.isAdmin) {
+      throw new ForbiddenException('No tienes permiso para modificar este usuario');
+    }
+
+    // ... actualizar
+  }
+}
+
+## Pre requisitos para correr el proyecto
+
+- Node.js (versión 18 o superior)
+- pnpm o elegir el gestor de preferencia npm o yarn
+- Docker (para correr el contenedor de PostgreSQL)
+- Git (para manejar las versiones del proyecto y su repositorio remoto)
+
+## Instalación
+
+1. Clonar el repositorio remoto en tu máquina local o en tu entorno de desarrollo.
+2. Instalar pnpm o el gestor de preferencia npm o yarn:
+```shell
+npm install -g pnpm
+
 ```
 
-## Compile and run the project
+1. Instalar las dependencias del proyecto:
 
-```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+```shell
+pnpm install
 ```
 
-## Run tests
+1. Configurar las variables de entorno del archivo `.env`, usando la guía del archivo `.env.example`.
 
-```bash
-# unit tests
-$ pnpm run test
+2. Correr el proyecto en modo desarrollo y el contenedor de PostgreSQL con Docker:
 
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+```shell
+docker compose up -d
+pnpm run start:dev
 ```
 
-## Deployment
+## Prisma ORM (Acceso a Datos)
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+Este proyecto utiliza el cliente de Prisma para interactuar con PostgreSQL. El esquema de la base de datos se define en `prisma/schema.prisma`.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Operaciones principales con Prisma Client
 
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+| Método                    | Acción SQL Equivalente           | Descripción                                      |
+| :------------------------ | :------------------------------- | :----------------------------------------------- |
+| `prisma.user.findMany()`  | `SELECT * FROM User`             | Retorna todos los usuarios.                      |
+| `prisma.user.findUnique()`| `SELECT * FROM User WHERE id=...`| Busca un registro por su ID único.               |
+| `prisma.user.create()`    | `INSERT INTO User`               | Crea un nuevo registro.                          |
+| `prisma.user.update()`    | `UPDATE User SET ...`            | Actualiza un registro existente.                 |
+| `prisma.user.delete()`    | `DELETE FROM User`               | Elimina un registro físicamente.                 |
+
+---
+
+## Características y beneficios
+
+- **Abstracción de la fuente de datos:** Prisma abstrae el acceso a datos, proporcionando una API fluida y tipada.
+- **Tipado Fuerte:** Generación automática de tipos basada en tu esquema de base de datos.
+- **Migraciones sencillas:** Gestión de versiones de base de datos automatizada con `prisma migrate`.
+- **Swagger Integrado:** Documentación interactiva accesible en `/api`.
+
+## Entidades (Prisma Schema)
+
+`prisma\schema.prisma`
+
+```prisma
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  age       Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Métodos de la API
 
-## Resources
+### Módulo de Usuarios (`/api/users`)
 
-Check out a few resources that may come in handy when working with NestJS:
+#### Crear un usuario
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+- **POST** `/api/users`
+- **Body (JSON):**
 
-## Support
+```json
+{
+  "name": "Sergio",
+  "email": "sergio@example.com",
+  "password": "password123",
+  "age": 25
+}
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+#### Obtener todos los usuarios
 
-## Stay in touch
+- **GET** `/api/users`
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+#### Obtener usuario por ID
 
-## License
+- **GET** `/api/users/:id`
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+### Módulo de Tareas (`/api/tasks`)
+
+#### Crear una tarea
+
+- **POST** `/api/tasks`
+- **Body (JSON):**
+
+```json
+{
+  "title": "Mi primera tarea",
+  "description": "Descripción de la tarea",
+  "status": false
+}
+```
+
+#### Obtener todas las tareas
+
+- **GET** `/api/tasks`
+
+### Documentación Completa
+
+Puedes acceder a la UI de Swagger en: `http://localhost:3000/api`
